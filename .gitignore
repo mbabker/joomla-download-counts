@@ -1,0 +1,18 @@
+# IDE based files and folders #
+.buildpath
+.project
+.settings
+.DS_Store
+.idea
+.phpintel
+
+# Files and folders that should not be pushed to the repo #
+/etc/config.json
+
+# COMPOSER Files #
+/vendor/*
+composer.phar
+
+# Miscellaneous files
+/counts.txt
+/releases.txt

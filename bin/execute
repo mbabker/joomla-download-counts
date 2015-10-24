@@ -1,0 +1,182 @@
+#!/usr/bin/env php
+<?php
+// Set max error reporting
+ini_set('display_errors', '1');
+ini_set('error_reporting', E_ALL | E_STRICT);
+
+// Define required paths
+define('JPATH_ROOT', dirname(__DIR__));
+
+// Get the repo autoloader
+include JPATH_ROOT . '/vendor/autoload.php';
+
+/**
+ * CLI Class to fetch download counts for a release
+ */
+class Downloads extends \Joomla\Application\AbstractCliApplication
+{
+	/**
+	 * GitHub API object
+	 *
+	 * @var  \Joomla\Github\Github
+	 */
+	protected $github = null;
+
+	/**
+	 * Lookup array mapping version numbers to release IDs
+	 *
+	 * @var  array
+	 */
+	protected $lookup = [
+		'2.5.25' => 576829,
+		'3.2.5'  => 576814,
+		'3.3.4'  => 576779,
+		'2.5.27' => 596183,
+		'3.2.7'  => 596176,
+		'3.3.6'  => 596193,
+		'2.5.28' => 771585,
+		'3.4.0-beta1' => 890669,
+		'3.4.0'  => 985058,
+		'3.4.1'  => 1076445,
+		'3.4.2'  => 1478160,
+		'3.4.3'  => 1489236,
+		'3.4.4'  => 1784493,
+		'3.4.5'  => 2002462
+	];
+
+	/**
+	 * Method to run the application routines.
+	 *
+	 * @return  void
+	 */
+	public function doExecute()
+	{
+		// Instantiate our options object
+		$options = new \Joomla\Registry\Registry;
+		$options->set('api.username', $this->get('github.username'));
+		$options->set('api.password', $this->get('github.password'));
+
+		// Instantiate the Github object
+		$this->github = new \Joomla\Github\Github($options);
+
+		// If --versions option provided, get all of the releases from the repo
+		if ($this->input->getBool('versions', false))
+		{
+			try
+			{
+				$releases = $this->github->repositories->releases->getList('joomla', 'joomla-cms');
+			}
+			catch (\DomainException $e)
+			{
+				$this->out(
+					sprintf(
+						'<error>Error Getting Release List - %1$s</error>',
+						$e->getMessage()
+					),
+					true
+				);
+
+				return;
+			}
+
+			file_put_contents(JPATH_ROOT . '/releases.txt', json_encode($releases, JSON_PRETTY_PRINT));
+
+			$this->out('<info>Successfully pulled releases and stored to releases.txt</info>');
+
+			return;
+		}
+
+		// Get the download counts for a release
+		if ($this->input->getBool('version', false))
+		{
+			$version = $this->input->getString('version');
+		}
+		else
+		{
+			$this->out('<question>Which release to count downloads for?</question>');
+			$version = $this->in();
+		}
+
+		if (!array_key_exists($version, $this->lookup))
+		{
+			$this->out('<error>The version you entered is not supported.</error>');
+
+			return;
+		}
+
+		try
+		{
+			$release = $this->github->repositories->releases->get('joomla', 'joomla-cms', $this->lookup[$version]);
+		}
+		catch (\DomainException $e)
+		{
+			$this->out(
+				sprintf(
+					'<error>Error Getting Release %1$s - %2$s</error>',
+					$version,
+					$e->getMessage()
+				),
+				true
+			);
+
+			return;
+		}
+
+		$downloads = 0;
+		$counts    = ['full' => 0, 'update' => 0];
+
+		foreach ($release->assets as $asset)
+		{
+			$downloads    += $asset->download_count;
+			$key           = (strpos($asset->name, 'Full') === false) ? 'update' : 'full';
+			$counts[$key] += $asset->download_count;
+		}
+
+		if ($this->input->getBool('store', false))
+		{
+			$data = json_decode(file_get_contents(__DIR__ . '/counts.txt'));
+			$date = (new \DateTime())->format('Ymd');
+
+			if (!isset($data->$date))
+			{
+				$data->$date = new \stdClass;
+			}
+
+			if (!isset($data->$date->$version))
+			{
+				$data->$date->$version = new \stdClass;
+			}
+
+			$data->$date->$version = $counts;
+
+			file_put_contents(__DIR__ . '/counts.txt', json_encode($data, JSON_PRETTY_PRINT));
+
+			$this->out('<info>Download data successfully stored to counts.txt</info>');
+
+			return;
+		}
+
+		$this->out(
+			sprintf(
+				'<info>There have been %1$d downloads of %2$s.</info>',
+				$downloads,
+				$version
+			)
+		);
+
+		return;
+	}
+}
+
+// Load the configuration
+$configFile = JPATH_ROOT . '/etc/config.json';
+
+if (!is_readable($configFile))
+{
+	throw new \RuntimeException('Configuration file does not exist or is unreadable.');
+}
+
+$config = (new \Joomla\Registry\Registry)->loadFile($configFile);
+
+// Execute the application.
+(new Downloads(null, $config))->execute();

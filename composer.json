@@ -1,0 +1,14 @@
+{
+    "name": "babdev/joomla-download-counts",
+    "description": "CLI script for fetching Joomla download counts from GitHub",
+    "license": "GPL-2.0+",
+    "require": {
+        "php": ">=5.4",
+        "joomla/application": "~1.5",
+        "joomla/github": "~1.1",
+        "joomla/registry": "~1.5"
+    },
+    "config": {
+        "preferred-install": "dist"
+    }
+}
