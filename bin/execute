@@ -94,8 +94,14 @@ class Downloads extends \Joomla\Application\AbstractCliApplication
 		else
 		{
 			$this->out('<question>Which release to count downloads for?</question>');
+			$menu = 0;
+			foreach($this->lookup as $available => $k ) {
+				$this->out(++$menu . ') ' . $available);
+			}
 			$version = $this->in();
 		}
+		$keys = array_keys($this->lookup);
+		$version = $keys[$version-1];
 
 		if (!array_key_exists($version, $this->lookup))
 		{
