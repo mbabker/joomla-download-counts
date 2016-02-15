@@ -137,7 +137,14 @@ class Downloads extends \Joomla\Application\AbstractCliApplication
 
 		if ($this->input->getBool('store', false))
 		{
-			$data = json_decode(file_get_contents(__DIR__ . '/counts.txt'));
+			$data  = new \stdClass;
+			$store = dirname(__DIR__) . '/counts.txt';
+
+			if (file_exists($store))
+			{
+				$data = json_decode(file_get_contents($store));
+			}
+
 			$date = (new \DateTime())->format('Ymd');
 
 			if (!isset($data->$date))
@@ -152,7 +159,7 @@ class Downloads extends \Joomla\Application\AbstractCliApplication
 
 			$data->$date->$version = $counts;
 
-			file_put_contents(__DIR__ . '/counts.txt', json_encode($data, JSON_PRETTY_PRINT));
+			file_put_contents($store, json_encode($data, JSON_PRETTY_PRINT));
 
 			$this->out('<info>Download data successfully stored to counts.txt</info>');
 
