@@ -9,6 +9,7 @@
         "joomla/registry": "~1.5"
     },
     "config": {
-        "preferred-install": "dist"
+        "preferred-install": "dist",
+        "php": "5.4.0"
     }
 }
