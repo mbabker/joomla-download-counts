@@ -45,6 +45,7 @@ class Downloads extends \Joomla\Application\AbstractCliApplication
 		'3.4.6'       => 2283609,
 		'3.4.7'       => 2323872,
 		'3.4.8'       => 2338699,
+		'3.5.0-beta2' => 2504974,
 	];
 
 	/**
